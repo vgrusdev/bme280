@@ -10,12 +10,11 @@ static int callback(void *data, int argc, char **argv, char **azColName){
 
    char hostname[24];
 
-   if (gethostname(hostname, 24)) {
-     strncpy (hostname, "dummy", sizeof(hostname));
+   if (gethostname(hostname, sizeof(hostname)-1)) {
+     strncpy (hostname, "dummy", sizeof(hostname)-1);
    }
 #ifdef DEBUG
    fprintf(stderr, "hostname = %s\n", hostname);
-   fprintf(stderr, "data = %s\n", (const char*)data);
 #endif
 
    if (argc >= 4) {
@@ -42,13 +41,23 @@ int main(int argc, char* argv[]) {
    sqlite3_stmt *res;
    int rc;
 
-   const char* data = "Callback function called";
-
+/*
    if (rc = sqlite3_open("/tmp/test.db", &db) != SQLITE_OK ) {
       fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
       sqlite3_close(db);
       return(1);
    }
+*/
+   printf("Content-Type: text/plain\n\n");
+
+   if ((rc = sqlite3_open_v2("/tmp/test.db", &db, SQLITE_OPEN_READONLY, NULL)) != SQLITE_OK) {
+#ifdef DEBUG
+      fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
+#endif
+      sqlite3_close(db);
+      return(1);
+   }
+   sqlite3_busy_timeout (db , 1000 );
 #ifdef DEBUG
    fprintf(stderr, "Opened database successfully\n");
 #endif
@@ -60,14 +69,12 @@ int main(int argc, char* argv[]) {
    // sql = "SELECT temp, pres, rhum, strftime('%Y-%m-%dT%H:%M:%S', ts, 'localtime') as ts  from Env;";
    sql = "SELECT temp, pres, rhum, strftime('%Y-%m-%dT%H:%M:%S', ts) as ts  from Env;";
 
-   printf("Content-Type: text/plain\n\n");
-
-   rc = sqlite3_exec(db, sql, callback, (void*)data, &err_msg);
+   rc = sqlite3_exec(db, sql, callback, (void*)NULL, &err_msg);
 
    if (rc != SQLITE_OK ) {
-        
+#ifdef DEBUG        
      fprintf(stderr, "SELECT error: %s\n", err_msg);
-        
+#endif
      sqlite3_free(err_msg);        
      sqlite3_close(db);
         

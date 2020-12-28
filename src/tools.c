@@ -21,12 +21,15 @@ sqlite3 *db_init(char *dbname) {
    char *err_msg = 0;
    int rc;
 
-   if ((rc = sqlite3_open(dbname, &db)) != SQLITE_OK ) {
+//   if ((rc = sqlite3_open(dbname, &db)) != SQLITE_OK ) {
+     if ((rc = sqlite3_open_v2(dbname, &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE, NULL)) != SQLITE_OK) {
       fprintf(stderr, "db_init: Can't open database: \'%s\': %s\n", dbname, sqlite3_errmsg(db));
 
       sqlite3_close(db);
       return(NULL);
    }
+   sqlite3_busy_timeout (db , 3000 );
+
 #ifdef DEBUG
    fprintf(stderr, "db_init: Opened database successfully: \'%s\'\n", dbname);
 #endif
